@@ -10,8 +10,7 @@ app = FastAPI(title="Research Agent API")
 # Enable CORS so your local HTML file can talk to this server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://hamzaahmedkhan786.github.io/"],
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
