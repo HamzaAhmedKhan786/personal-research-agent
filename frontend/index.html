@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRA | Personal Research Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            #output, #output * { visibility: visible; }
+            #output {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+        }
+        .transition-all { transition: all 0.3s ease; }
+        /* Clean formatting for the report preview */
+        #output h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
+        #output h2 { font-size: 1.4rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #1e293b; }
+        #output p { margin-bottom: 1rem; }
+        #output li { margin-left: 1.5rem; list-style-type: disc; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 md:p-8 font-sans">
+
+    <div class="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-xl border border-slate-200">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-slate-800">🔍 Personal Research Agent</h1>
+            <p class="text-slate-500 mt-2">Agentic AI Workflows with LangGraph</p>
+            
+            <div class="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100 text-sm text-blue-800">
+                <strong>💡 Quick Guide:</strong> 
+                <ul class="list-disc ml-5 mt-1 space-y-1">
+                    <li><strong>OpenAI:</strong> Requires a paid API balance.</li>
+                    <li><strong>Groq:</strong> <a href="https://console.groq.com/" target="_blank" class="underline font-bold">Free API Key</a>.</li>
+                    <li><strong>Ollama:</strong> 100% Free & Local.</li>
+                </ul>
+            </div>
+        </header>
+        
+        <div class="space-y-6 mb-8">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider">1. Choose Your Brain (LLM)</label>
+                <div class="grid grid-cols-3 gap-2 p-1 bg-slate-100 rounded-lg">
+                    <button onclick="setProvider('openai')" id="btn-openai" class="py-2 rounded-md text-sm font-medium transition-all bg-white shadow-sm border border-slate-200 text-slate-900">OpenAI</button>
+                    <button onclick="setProvider('groq')" id="btn-groq" class="py-2 rounded-md text-sm font-medium transition-all text-slate-500 hover:bg-slate-200">Groq (Free)</button>
+                    <button onclick="setProvider('ollama')" id="btn-ollama" class="py-2 rounded-md text-sm font-medium transition-all text-slate-500 hover:bg-slate-200">Ollama (Local)</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="llm-key-container">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">LLM API Key</label>
+                    <input type="password" id="api_key" placeholder="Enter Key..." class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tavily Search Key</label>
+                    <input type="password" id="tavily_key" placeholder="tvly-..." class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 transition-all">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">2. Research Topic</label>
+                <div class="relative">
+                    <input type="text" id="topic" placeholder="e.g. The future of Agentic AI" class="w-full p-4 pr-32 border-2 rounded-xl outline-none focus:border-blue-500 transition-all shadow-inner">
+                    <button onclick="startResearch()" id="run-btn" class="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-700 text-white px-6 rounded-lg font-bold shadow-md active:scale-95 transition-all">Analyze</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="loader" class="hidden text-center py-10">
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent mb-4"></div>
+            <p class="text-slate-600 animate-pulse font-medium">Agent is browsing, planning, and writing...</p>
+        </div>
+
+        <div id="result" class="hidden border-t pt-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-slate-800">Final Research Report</h2>
+                <div class="flex gap-2">
+                    <button onclick="exportToWord()" class="flex items-center gap-2 bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-800 transition-all">
+                        <span>Word</span>
+                    </button>
+                    <button onclick="exportToPDF()" class="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-all">
+                        <span>PDF</span>
+                    </button>
+                </div>
+            </div>
+            <div id="output" class="text-slate-700 leading-relaxed bg-white p-6 rounded-xl border border-slate-100 shadow-inner min-h-[200px]"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedProvider = 'openai';
+
+        function setProvider(p) {
+            selectedProvider = p;
+            document.querySelectorAll('[id^="btn-"]').forEach(b => {
+                b.className = "py-2 rounded-md text-sm font-medium transition-all text-slate-500 hover:bg-slate-200";
+            });
+            document.getElementById(`btn-${p}`).className = "py-2 rounded-md text-sm font-medium transition-all bg-white shadow-sm border border-slate-200 text-slate-900";
+            const keyInput = document.getElementById('api_key');
+            keyInput.disabled = (p === 'ollama');
+            keyInput.placeholder = (p === 'ollama') ? "Local (No Key Needed)" : "Enter API Key";
+        }
+
+        async function startResearch() {
+            const topic = document.getElementById('topic').value;
+            const api_key = document.getElementById('api_key').value;
+            const tavily_key = document.getElementById('tavily_key').value;
+            
+            if(!topic || !tavily_key) return alert("Keys and topic required.");
+
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('result').classList.add('hidden');
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/run-research', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ topic, provider: selectedProvider, api_key, tavily_key })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    // Convert Markdown-style text to clean HTML for display
+                    document.getElementById('output').innerHTML = formatMarkdown(data.report);
+                    document.getElementById('result').classList.remove('hidden');
+                }
+            } catch (error) {
+                alert("Backend connection failed.");
+            } finally {
+                document.getElementById('loader').classList.add('hidden');
+            }
+        }
+
+        function formatMarkdown(text) {
+            return text
+                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/^\* (.*$)/gim, '<li>$1</li>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function exportToPDF() {
+            const element = document.getElementById('output');
+            const opt = {
+                margin: [1, 1, 1, 1],
+                filename: 'Research_Report.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function exportToWord() {
+            const content = document.getElementById('output').innerText;
+            const doc = new docx.Document({
+                sections: [{
+                    properties: {},
+                    children: content.split('\n').map(line => new docx.Paragraph({
+                        children: [new docx.TextRun(line)],
+                        spacing: { after: 200 }
+                    }))
+                }]
+            });
+            docx.Packer.toBlob(doc).then(blob => {
+                saveAs(blob, "Research_Report.docx");
+            });
+        }
+    </script>
+</body>
+</html>
