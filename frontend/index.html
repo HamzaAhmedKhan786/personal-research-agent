@@ -125,7 +125,7 @@
             document.getElementById('result').classList.add('hidden');
 
             try {
-                const response = await fetch('http://127.0.0.1:8000/run-research', {
+                const response = await fetch('https://research-agent-backend.onrender.com/run-research', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ topic, provider: selectedProvider, api_key, tavily_key })

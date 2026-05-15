@@ -10,7 +10,7 @@ app = FastAPI(title="Research Agent API")
 # Enable CORS so your local HTML file can talk to this server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://hamzaahmedkhan786.github.io/"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -53,4 +53,6 @@ async def run_research(request: ResearchRequest):
             os.environ.pop(key, None)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    # Use the port assigned by Render, default to 8000 for local testing
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
